@@ -1,0 +1,155 @@
+import React, { useState, useEffect } from 'react';
+import { Heart, Users } from 'lucide-react';
+import { sandboxStorage, DEFAULT_FAMILY } from '../../../services/sandboxStorage';
+import { generateFaceRounds, FaceRound } from './faceFamilyUtils';
+
+export interface FaceFamilyMatchProps {
+  onSessionComplete?: (stats: { moves: number; accuracy: number }) => void;
+  showToast: (msg: string, icon?: string) => void;
+}
+
+export const FaceFamilyMatch: React.FC<FaceFamilyMatchProps> = ({
+  showToast,
+}) => {
+  const [rounds, setRounds] = useState<FaceRound[]>([]);
+  const [currentRoundIdx, setCurrentRoundIdx] = useState<number>(0);
+  const [selectedName, setSelectedName] = useState<string | null>(null);
+  const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
+  const [isShaking, setIsShaking] = useState<boolean>(false);
+  const [moves, setMoves] = useState<number>(0);
+  const [isComplete, setIsComplete] = useState<boolean>(false);
+  const [hintMessage, setHintMessage] = useState<string | null>(null);
+
+  const initGame = () => {
+    const family = sandboxStorage.getFamily() || DEFAULT_FAMILY;
+    const newRounds = generateFaceRounds(family, 3);
+    setRounds(newRounds);
+    setCurrentRoundIdx(0);
+    setSelectedName(null);
+    setIsCorrect(null);
+    setIsShaking(false);
+    setMoves(0);
+    setIsComplete(false);
+    setHintMessage(null);
+  };
+
+  useEffect(() => {
+    initGame();
+  }, []);
+
+  const currentRound = rounds[currentRoundIdx];
+
+  if (!currentRound && !isComplete) {
+    return (
+      <div className="text-center py-12 text-[#665F51] font-baloo">
+        Loading family activity...
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-[640px] mx-auto text-center animate-rise">
+      {/* Top Banner with Assamese Heritage Warmth */}
+      <div className="relative overflow-hidden rounded-3xl bg-[#22403A] px-5 py-5 mb-6 text-left shadow-md">
+        <div className="absolute -right-6 -top-6 h-28 w-28 rounded-full bg-[#E2A33D]/20 pointer-events-none" />
+        <div className="absolute -bottom-10 left-1/4 h-24 w-24 rounded-full bg-[#BD5B3B]/15 pointer-events-none" />
+        <div className="relative flex items-start justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-1.5 text-[#F8E6C1] font-baloo text-xs font-bold uppercase tracking-wider mb-1">
+              <Users className="w-3.5 h-3.5" />
+              Family & Warm Memories
+            </div>
+            <h3 className="font-fraunces text-xl md:text-2xl text-[#FBF7EE]">
+              Face & Family Match
+            </h3>
+            <p className="text-xs text-[#E4ECE7] mt-1">
+              Take all the time you need. Every face is someone who loves you.
+            </p>
+          </div>
+          <div className="shrink-0 rounded-2xl bg-white/10 p-2.5 text-[#F8E6C1]">
+            <Heart className="w-6 h-6 fill-current text-[#E2A33D]" />
+          </div>
+        </div>
+      </div>
+
+      {/* Progress Indicators */}
+      <div className="flex items-center justify-between gap-3 mb-3">
+        <span className="font-baloo text-sm font-bold text-[#665F51]">
+          Round {currentRoundIdx + 1} of {rounds.length || 3}
+        </span>
+        <span className="font-baloo text-xs font-medium text-[#22403A] bg-[#E4ECE7] px-3 py-1 rounded-full">
+          No time limit · Gentle pace
+        </span>
+      </div>
+
+      <div className="flex justify-center gap-2 mb-6" aria-label={`Round ${currentRoundIdx + 1} of 3`}>
+        {rounds.map((_, idx) => (
+          <span
+            key={idx}
+            className={`h-2.5 flex-1 max-w-28 rounded-full transition-all duration-300 ${
+              idx === currentRoundIdx
+                ? 'bg-[#E2A33D]'
+                : idx < currentRoundIdx
+                ? 'bg-[#22403A]'
+                : 'bg-[#E6DAB9]'
+            }`}
+          />
+        ))}
+      </div>
+
+      {/* Main Round Card with Photo & Warm Clue */}
+      {currentRound && !isComplete && (
+        <div
+          className={`bg-[#FBF7EE] border border-[#E6DAB9] rounded-3xl p-6 md:p-8 shadow-xs transition-transform ${
+            isShaking ? 'animate-soft-shake' : ''
+          }`}
+        >
+          {/* Warm Clue Header */}
+          <div className="mb-6">
+            <span className="text-xs font-baloo font-bold uppercase tracking-wider text-[#BD5B3B]">
+              Memory Clue
+            </span>
+            <h4 className="font-fraunces text-2xl md:text-3xl text-[#221F1B] mt-1 leading-snug">
+              &ldquo;{currentRound.clue}&rdquo;
+            </h4>
+            {hintMessage && (
+              <p
+                role="status"
+                aria-live="polite"
+                className="text-sm font-baloo font-semibold text-[#8A5D18] mt-2 bg-[#F8E6C1]/70 py-1.5 px-4 rounded-xl inline-block"
+              >
+                {hintMessage}
+              </p>
+            )}
+          </div>
+
+          {/* Central Portrait Photo */}
+          <div className="flex flex-col items-center justify-center my-6">
+            <div className="relative group">
+              <div className="w-40 h-40 md:w-48 md:h-48 rounded-full overflow-hidden border-4 border-[#E6DAB9] shadow-md bg-white flex items-center justify-center">
+                {currentRound.target.imageUrl ? (
+                  <img
+                    src={currentRound.target.imageUrl}
+                    alt={currentRound.target.name}
+                    className="w-full h-full object-cover"
+                    loading="eager"
+                  />
+                ) : (
+                  <div
+                    className="w-full h-full flex items-center justify-center text-3xl font-baloo font-bold text-white"
+                    style={{ backgroundColor: currentRound.target.color || '#3E4F74' }}
+                  >
+                    {currentRound.target.name.charAt(0)}
+                  </div>
+                )}
+              </div>
+              <div className="absolute -bottom-2 bg-white/95 border border-[#E6DAB9] shadow-xs px-3.5 py-1 rounded-full text-xs font-baloo font-bold text-[#665F51]">
+                {currentRound.target.rel}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
