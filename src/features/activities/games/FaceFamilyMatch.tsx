@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, Users, Check, Sparkles, RotateCcw, Award } from 'lucide-react';
+import { Heart, Users, Check, Sparkles, RotateCcw } from 'lucide-react';
 import { sandboxStorage, DEFAULT_FAMILY } from '../../../services/sandboxStorage';
 import { generateFaceRounds, FaceRound, playGentleChime } from './faceFamilyUtils';
 
@@ -20,6 +20,7 @@ export const FaceFamilyMatch: React.FC<FaceFamilyMatchProps> = ({
   const [moves, setMoves] = useState<number>(0);
   const [isComplete, setIsComplete] = useState<boolean>(false);
   const [hintMessage, setHintMessage] = useState<string | null>(null);
+  const [imageError, setImageError] = useState<boolean>(false);
 
   const initGame = () => {
     const family = sandboxStorage.getFamily() || DEFAULT_FAMILY;
@@ -32,11 +33,16 @@ export const FaceFamilyMatch: React.FC<FaceFamilyMatchProps> = ({
     setMoves(0);
     setIsComplete(false);
     setHintMessage(null);
+    setImageError(false);
   };
 
   useEffect(() => {
     initGame();
   }, []);
+
+  useEffect(() => {
+    setImageError(false);
+  }, [currentRoundIdx]);
 
   const handleSelectName = (name: string) => {
     if (selectedName && isCorrect) return; // already answered correctly and advancing
@@ -173,16 +179,17 @@ export const FaceFamilyMatch: React.FC<FaceFamilyMatchProps> = ({
               <div className="flex flex-col items-center justify-center my-6">
                 <div className="relative group">
                   <div className="w-40 h-40 md:w-48 md:h-48 rounded-full overflow-hidden border-4 border-[#E6DAB9] shadow-md bg-white flex items-center justify-center">
-                    {currentRound.target.imageUrl ? (
+                    {currentRound.target.imageUrl && !imageError ? (
                       <img
                         src={currentRound.target.imageUrl}
                         alt={currentRound.target.name}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover transition-opacity duration-300"
                         loading="eager"
+                        onError={() => setImageError(true)}
                       />
                     ) : (
                       <div
-                        className="w-full h-full flex items-center justify-center text-3xl font-baloo font-bold text-white"
+                        className="w-full h-full flex items-center justify-center text-4xl font-baloo font-bold text-white select-none"
                         style={{ backgroundColor: currentRound.target.color || '#3E4F74' }}
                       >
                         {currentRound.target.name.charAt(0)}
@@ -215,7 +222,7 @@ export const FaceFamilyMatch: React.FC<FaceFamilyMatchProps> = ({
                       onClick={() => handleSelectName(name)}
                       disabled={Boolean(selectedName && isCorrect)}
                       aria-label={`Select ${name}`}
-                      className={`min-h-18 px-5 py-4 rounded-2xl border-2 font-baloo font-bold text-lg md:text-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer ${buttonStyle}`}
+                      className={`min-h-18 px-5 py-4 rounded-2xl border-2 font-baloo font-bold text-lg md:text-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-[#22403A]/40 ${buttonStyle}`}
                     >
                       {isOptionCorrect && <Check className="w-5 h-5 text-[#3F7455]" />}
                       <span>{name}</span>
@@ -253,7 +260,7 @@ export const FaceFamilyMatch: React.FC<FaceFamilyMatchProps> = ({
 
           <button
             onClick={initGame}
-            className="inline-flex items-center gap-2.5 px-8 py-4 rounded-2xl bg-[#22403A] text-[#FBF7EE] font-baloo font-bold text-base hover:bg-[#152B26] transition-all cursor-pointer shadow-sm hover:shadow-md"
+            className="inline-flex items-center gap-2.5 px-8 py-4 rounded-2xl bg-[#22403A] text-[#FBF7EE] font-baloo font-bold text-base hover:bg-[#152B26] transition-all cursor-pointer shadow-sm hover:shadow-md focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-[#22403A]/40"
           >
             <RotateCcw className="w-5 h-5" />
             Play Again
