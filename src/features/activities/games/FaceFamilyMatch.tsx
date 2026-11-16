@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, Users } from 'lucide-react';
+import { Heart, Users, Check } from 'lucide-react';
 import { sandboxStorage, DEFAULT_FAMILY } from '../../../services/sandboxStorage';
-import { generateFaceRounds, FaceRound } from './faceFamilyUtils';
+import { generateFaceRounds, FaceRound, playGentleChime } from './faceFamilyUtils';
 
 export interface FaceFamilyMatchProps {
   onSessionComplete?: (stats: { moves: number; accuracy: number }) => void;
@@ -36,6 +36,41 @@ export const FaceFamilyMatch: React.FC<FaceFamilyMatchProps> = ({
   useEffect(() => {
     initGame();
   }, []);
+
+  const handleSelectName = (name: string) => {
+    if (selectedName && isCorrect) return; // already got it right and waiting to advance
+
+    setMoves((prev) => prev + 1);
+    const correct = name === currentRound.target.name;
+    setSelectedName(name);
+
+    if (correct) {
+      setIsCorrect(true);
+      setHintMessage(null);
+      showToast(`Yes! That's ${currentRound.target.name}.`, 'check');
+      playGentleChime();
+
+      setTimeout(() => {
+        if (currentRoundIdx < rounds.length - 1) {
+          setCurrentRoundIdx((prev) => prev + 1);
+          setSelectedName(null);
+          setIsCorrect(null);
+          setHintMessage(null);
+        } else {
+          setIsComplete(true);
+        }
+      }, 1000);
+    } else {
+      setIsCorrect(false);
+      setIsShaking(true);
+      setHintMessage('Not quite, give it another try!');
+      showToast('Not quite, give it another try!', 'heart');
+
+      setTimeout(() => {
+        setIsShaking(false);
+      }, 450);
+    }
+  };
 
   const currentRound = rounds[currentRoundIdx];
 
@@ -147,6 +182,35 @@ export const FaceFamilyMatch: React.FC<FaceFamilyMatchProps> = ({
                 {currentRound.target.rel}
               </div>
             </div>
+          </div>
+
+          {/* 3 Large Choice Buttons */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 mt-8">
+            {currentRound.options.map((name) => {
+              const isSelected = selectedName === name;
+              const isOptionCorrect = isSelected && isCorrect === true;
+              const isOptionWrong = isSelected && isCorrect === false;
+
+              let buttonStyle = 'bg-white border-[#E6DAB9] text-[#221F1B] hover:border-[#22403A] hover:bg-[#FBF7EE]';
+              if (isOptionCorrect) {
+                buttonStyle = 'bg-[#E4ECE7] border-[#3F7455] text-[#22403A] ring-2 ring-[#3F7455]/30 scale-102';
+              } else if (isOptionWrong) {
+                buttonStyle = 'bg-[#F5E1D6] border-[#BD5B3B] text-[#BD5B3B]';
+              }
+
+              return (
+                <button
+                  key={name}
+                  onClick={() => handleSelectName(name)}
+                  disabled={Boolean(selectedName && isCorrect)}
+                  aria-label={`Select ${name}`}
+                  className={`min-h-18 px-5 py-4 rounded-2xl border-2 font-baloo font-bold text-lg md:text-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer ${buttonStyle}`}
+                >
+                  {isOptionCorrect && <Check className="w-5 h-5 text-[#3F7455]" />}
+                  <span>{name}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
